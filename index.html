@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>МедКалк</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="МедКалк">
+<meta name="theme-color" content="#0B6E6E">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAABsUlEQVR42u3bsQkAMAhFQfvs6v6dWcBWiOQ+bwK51jiZUls4geAQHIJDcAgOwSE4BIfgEBwSHIJDcAgOwSE4BIfgEByCQ4JDcAgOwSE4BIfgEByCQ3BIcAgOwSE4BIfgEByCQ3AsqmYGBxxwwAEHHHDAAQcccMABBxxwwAEHHHDAAQcccMABBxxwwAEHHHDAAQcccMABBxxwwAEHHHDAAQcccMABBxxwwAEHHHDAAQcccMABBxxwwAEHHHDAAQcccMABBxyrcZQ9DxEOOOCAAw444IADDoPD4IADDjjggAMOOOCAAw444IADDjjggMPgMDjggAMOOOCAAw444IADDjjggAMOOOCAAw6Dw+CAAw5f9r7s4YADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IADDjjggAMOOOCAAw444IBDcAgOwSE4BIfgEByCQ4JDcAgOwSE4BIfgEByCQ3BIcAgOwSE4BIfgEByCQ3AIDgkOwSE4BIfgEByCQ3AIDsGhr7t3JB4sh9VUAAAAAABJRU5ErkJggg==">
+<style>
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); color-scheme: light; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+</style>
+<style>
+  /* Layout: одна колонка. Сверху чипы-вкладки, под ними карточка калькулятора:
+     поля ввода, затем цветной блок результата со шкалой. */
+  :root {
+    --bg: #EDF3F3;
+    --surface: #FFFFFF;
+    --field: #F5F9F9;
+    --ink: #10282B;
+    --muted: #58706F;
+    --line: #D2DEDD;
+    --accent: #0B6E6E;
+    --accent-ink: #FFFFFF;
+    --ok: #1B8556;
+    --warn: #A86A0B;
+    --bad: #C0392B;
+    --info: #2A66AB;
+    --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A1617;
+      --surface: #112224;
+      --field: #0D1C1E;
+      --ink: #E4F0EF;
+      --muted: #8FA8A8;
+      --line: #23393B;
+      --accent: #52C2BB;
+      --accent-ink: #06201F;
+      --ok: #4CC38A;
+      --warn: #E4B04C;
+      --bad: #F2796B;
+      --info: #78AEEA;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A1617;
+    --surface: #112224;
+    --field: #0D1C1E;
+    --ink: #E4F0EF;
+    --muted: #8FA8A8;
+    --line: #23393B;
+    --accent: #52C2BB;
+    --accent-ink: #06201F;
+    --ok: #4CC38A;
+    --warn: #E4B04C;
+    --bad: #F2796B;
+    --info: #78AEEA;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    padding-block: 24px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+  header h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; color: var(--muted); }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tab {
+    font: inherit; font-weight: 500; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; min-height: 40px;
+  }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .tab:hover:not([aria-selected="true"]) { border-color: var(--accent); }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0;
+  }
+  .card h2 { margin: 0; font-size: 19px; font-weight: 600; }
+  .card .lead { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field label { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .control { display: flex; align-items: center; background: var(--field); border: 1px solid var(--line); border-radius: 6px; }
+  .control:focus-within { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 0; }
+  .control input, .control select {
+    flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink);
+    background: transparent; border: 0; outline: 0; padding: 10px 12px; min-height: 44px;
+  }
+  .control input { font-family: var(--font-mono); font-weight: 500; }
+  .control .u { padding-right: 12px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .hint { margin: -6px 0 0; font-size: 12.5px; color: var(--muted); }
+
+  .result {
+    --tone: var(--muted);
+    background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--tone) 30%, var(--line));
+    border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  }
+  .tone-ok { --tone: var(--ok); }
+  .tone-warn { --tone: var(--warn); }
+  .tone-bad { --tone: var(--bad); }
+  .tone-info { --tone: var(--info); }
+
+  .caption { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .bigrow { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+  .big { font-family: var(--font-mono); font-weight: 500; font-size: 48px; line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .bigunit { color: var(--muted); font-size: 15px; }
+  .pill {
+    align-self: flex-start; font-weight: 600; font-size: 14px; color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 14%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--surface));
+    border-radius: 6px; padding: 4px 10px;
+  }
+
+  .scale { position: relative; padding-top: 10px; padding-bottom: 20px; }
+  .bar { display: flex; gap: 2px; height: 8px; }
+  .seg { border-radius: 2px; opacity: 0.85; }
+  .seg.ok { background: var(--ok); } .seg.warn { background: var(--warn); }
+  .seg.bad { background: var(--bad); } .seg.info { background: var(--info); }
+  .mark { position: absolute; top: 2px; width: 3px; height: 24px; margin-left: -1.5px; background: var(--ink); border-radius: 1px; }
+  .tick { position: absolute; top: 28px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
+
+  .rows { margin: 0; display: flex; flex-direction: column; }
+  .rows > div { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 1px solid color-mix(in srgb, var(--tone) 22%, var(--line)); }
+  .rows dt { color: var(--muted); }
+  .rows dd { margin: 0; text-align: right; font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .note { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .err { margin: 0; color: var(--muted); }
+
+  details { font-size: 13.5px; color: var(--muted); }
+  details summary { cursor: pointer; font-weight: 500; color: var(--ink); }
+  details p { margin: 8px 0 0; }
+  .mono { font-family: var(--font-mono); }
+
+  footer { font-size: 12.5px; color: var(--muted); }
+  footer p { margin: 0; }
+
+  @media (max-width: 420px) {
+    .big { font-size: 42px; }
+    .card { padding: 16px; }
+    .rows > div { flex-direction: column; gap: 2px; }
+    .rows dd { text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>МедКалк</h1>
+    <p>Быстрые медицинские расчёты по общепринятым формулам</p>
+  </header>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="Калькуляторы"></div>
+
+  <section class="card" id="panel" role="tabpanel">
+    <div>
+      <h2 id="title"></h2>
+      <p class="lead" id="lead"></p>
+    </div>
+    <form class="fields" id="form" autocomplete="off" onsubmit="return false"></form>
+    <p class="hint">В полях подставлены примерные значения. Замените их своими.</p>
+    <div id="result" aria-live="polite"></div>
+    <details id="formula"><summary>Формула и источник</summary><p id="formulaText"></p></details>
+  </section>
+
+  <footer>
+    <p>Справочный инструмент. Результаты не заменяют консультацию врача и не являются диагнозом. Дозы препаратов всегда сверяйте с инструкцией и назначением врача.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var nf = function (n, d) {
+    d = d || 0;
+    return n.toLocaleString('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d });
+  };
+  var mg = function (x) { return x >= 100 ? nf(x, 0) : x >= 10 ? nf(x, 1) : nf(x, 2); };
+  var $ = function (s) { return document.querySelector(s); };
+
+  var SEX = [['m', 'Мужской'], ['f', 'Женский']];
+
+  var calcs = [
+    {
+      id: 'bmi', tab: 'ИМТ', title: 'Индекс массы тела',
+      lead: 'Соотношение роста и веса у взрослых.',
+      formula: 'ИМТ = масса (кг) / рост (м)². Градации ВОЗ для взрослых. Нормальный вес для роста считается по ИМТ 18,5–24,9. Показатель не учитывает мышечную массу и не подходит для детей и беременных.',
+      fields: [
+        { id: 'h', label: 'Рост', unit: 'см', value: 175, min: 50, max: 250 },
+        { id: 'w', label: 'Вес', unit: 'кг', value: 70, min: 2, max: 400, dec: 0 }
+      ],
+      run: function (v) {
+        var m = v.h / 100, bmi = v.w / (m * m), label, tone;
+        if (bmi < 16) { label = 'Выраженный дефицит массы'; tone = 'bad'; }
+        else if (bmi < 18.5) { label = 'Дефицит массы'; tone = 'info'; }
+        else if (bmi < 25) { label = 'Норма'; tone = 'ok'; }
+        else if (bmi < 30) { label = 'Избыточная масса'; tone = 'warn'; }
+        else if (bmi < 35) { label = 'Ожирение I степени'; tone = 'bad'; }
+        else if (bmi < 40) { label = 'Ожирение II степени'; tone = 'bad'; }
+        else { label = 'Ожирение III степени'; tone = 'bad'; }
+        var lo = 18.5 * m * m, hi = 24.9 * m * m, diff;
+        if (v.w > hi) diff = '−' + nf(v.w - hi, 1) + ' кг';
+        else if (v.w < lo) diff = '+' + nf(lo - v.w, 1) + ' кг';
+        else diff = 'в пределах нормы';
+        return {
+          caption: 'Индекс массы тела', big: nf(bmi, 1), unit: 'кг/м²', status: label, tone: tone,
+          scale: { min: 14, max: 42, value: bmi,
+            bands: [{ to: 16, t: 'bad' }, { to: 18.5, t: 'info' }, { to: 25, t: 'ok' }, { to: 30, t: 'warn' }, { to: 35, t: 'bad' }, { to: 40, t: 'bad' }, { to: 42, t: 'bad' }],
+            ticks: [16, 18.5, 25, 30, 35, 40] },
+          rows: [['Нормальный вес для роста', nf(lo, 1) + '–' + nf(hi, 1) + ' кг'], ['До нормы', diff]]
+        };
+      }
+    },
+    {
+      id: 'bsa', tab: 'Площадь тела', title: 'Площадь поверхности тела',
+      lead: 'Используется для расчёта доз химиотерапии и сердечного индекса.',
+      formula: 'Mosteller: √(рост (см) × масса (кг) / 3600). Du Bois: 0,007184 × масса^0,425 × рост^0,725.',
+      fields: [
+        { id: 'h', label: 'Рост', unit: 'см', value: 175, min: 40, max: 250 },
+        { id: 'w', label: 'Вес', unit: 'кг', value: 70, min: 2, max: 400, dec: 0 }
+      ],
+      run: function (v) {
+        var most = Math.sqrt(v.h * v.w / 3600);
+        var du = 0.007184 * Math.pow(v.w, 0.425) * Math.pow(v.h, 0.725);
+        return {
+          caption: 'Площадь поверхности тела', big: nf(most, 2), unit: 'м² (Mosteller)', status: 'Расчёт по формуле Mosteller', tone: 'info',
+          rows: [['Du Bois', nf(du, 2) + ' м²']]
+        };
+      }
+    },
+    {
+      id: 'kcal', tab: 'Калории', title: 'Суточная потребность в энергии',
+      lead: 'Базальный обмен и суточный расход калорий взрослого.',
+      formula: 'Mifflin–St Jeor: 10 × масса (кг) + 6,25 × рост (см) − 5 × возраст (лет) + 5 для мужчин или − 161 для женщин. Суточный расход = базальный обмен × коэффициент активности (1,2–1,9). Точность около ±10 %.',
+      fields: [
+        { id: 'sex', label: 'Пол', type: 'select', value: 'm', options: SEX },
+        { id: 'age', label: 'Возраст', unit: 'лет', value: 35, min: 15, max: 100 },
+        { id: 'h', label: 'Рост', unit: 'см', value: 175, min: 100, max: 250 },
+        { id: 'w', label: 'Вес', unit: 'кг', value: 70, min: 30, max: 300, dec: 0 },
+        { id: 'act', label: 'Активность', type: 'select', value: '1.375', wide: true, options: [
+          ['1.2', 'Минимальная (сидячая работа)'],
+          ['1.375', 'Лёгкая (1–3 тренировки в неделю)'],
+          ['1.55', 'Умеренная (3–5 тренировок)'],
+          ['1.725', 'Высокая (6–7 тренировок)'],
+          ['1.9', 'Очень высокая (тяжёлый труд и спорт)']] }
+      ],
+      run: function (v) {
+        var bmr = 10 * v.w + 6.25 * v.h - 5 * v.age + (v.sex === 'm' ? 5 : -161);
+        var tdee = bmr * parseFloat(v.act);
+        return {
+          caption: 'Суточный расход энергии', big: nf(tdee, 0), unit: 'ккал/сут', status: 'Поддержание текущей массы', tone: 'info',
+          rows: [['Базальный обмен', nf(bmr, 0) + ' ккал'], ['Для снижения массы (−15 %)', nf(tdee * 0.85, 0) + ' ккал'], ['Для набора массы (+10 %)', nf(tdee * 1.1, 0) + ' ккал']],
+          note: 'Это оценка. Длительное питание ниже базального обмена обсуждайте с врачом.'
+        };
+      }
+    },
+    {
+      id: 'gfr', tab: 'СКФ', title: 'Скорость клубочковой фильтрации',
+      lead: 'Оценка функции почек по креатинину крови у взрослых.',
+      formula: 'CKD-EPI 2021 (без расовой поправки): 142 × min(Scr/κ, 1)^α × max(Scr/κ, 1)^−1,200 × 0,9938^возраст × 1,012 для женщин. κ = 0,7 (ж) или 0,9 (м); α = −0,241 (ж) или −0,302 (м). Креатинин в мг/дл = мкмоль/л ÷ 88,4.',
+      fields: [
+        { id: 'sex', label: 'Пол', type: 'select', value: 'm', options: SEX },
+        { id: 'age', label: 'Возраст', unit: 'лет', value: 45, min: 18, max: 110 },
+        { id: 'unit', label: 'Единицы креатинина', type: 'select', value: 'umol', options: [['umol', 'мкмоль/л'], ['mg', 'мг/дл']] },
+        { id: 'creat', label: 'Креатинин', value: 90, dec: 2 }
+      ],
+      run: function (v) {
+        var lo = v.unit === 'mg' ? 0.1 : 10, hi = v.unit === 'mg' ? 25 : 2200;
+        if (v.creat < lo || v.creat > hi) {
+          return { error: 'Креатинин: допустимо от ' + nf(lo, v.unit === 'mg' ? 1 : 0) + ' до ' + nf(hi, 0) + ' ' + (v.unit === 'mg' ? 'мг/дл' : 'мкмоль/л') + '.' };
+        }
+        var scr = v.unit === 'mg' ? v.creat : v.creat / 88.4;
+        var f = v.sex === 'f', k = f ? 0.7 : 0.9, a = f ? -0.241 : -0.302;
+        var e = 142 * Math.pow(Math.min(scr / k, 1), a) * Math.pow(Math.max(scr / k, 1), -1.2) * Math.pow(0.9938, v.age) * (f ? 1.012 : 1);
+        var st, tone;
+        if (e >= 90) { st = 'G1 — норма или высокая'; tone = 'ok'; }
+        else if (e >= 60) { st = 'G2 — незначительно снижена'; tone = 'ok'; }
+        else if (e >= 45) { st = 'G3a — умеренно снижена'; tone = 'warn'; }
+        else if (e >= 30) { st = 'G3b — существенно снижена'; tone = 'warn'; }
+        else if (e >= 15) { st = 'G4 — резко снижена'; tone = 'bad'; }
+        else { st = 'G5 — почечная недостаточность'; tone = 'bad'; }
+        return {
+          caption: 'СКФ (CKD-EPI 2021)', big: nf(e, 0), unit: 'мл/мин/1,73 м²', status: st, tone: tone,
+          scale: { min: 0, max: 120, value: e,
+            bands: [{ to: 15, t: 'bad' }, { to: 30, t: 'bad' }, { to: 45, t: 'warn' }, { to: 60, t: 'warn' }, { to: 90, t: 'ok' }, { to: 120, t: 'ok' }],
+            ticks: [15, 30, 45, 60, 90] },
+          rows: [['Креатинин', nf(scr * 88.4, 0) + ' мкмоль/л · ' + nf(scr, 2) + ' мг/дл']],
+          note: 'Хроническую болезнь почек диагностируют, если СКФ ниже 60 или есть признаки поражения почек дольше 3 месяцев.'
+        };
+      }
+    },
+    {
+      id: 'bp', tab: 'Давление', title: 'Артериальное давление',
+      lead: 'Категория давления, пульсовое и среднее АД.',
+      formula: 'Среднее АД = ДАД + (САД − ДАД) / 3. Пульсовое давление = САД − ДАД. Категории по рекомендациям ESC/ESH 2018 для взрослых по офисным измерениям.',
+      fields: [
+        { id: 'sys', label: 'Систолическое (САД)', unit: 'мм рт. ст.', value: 128, min: 50, max: 300 },
+        { id: 'dia', label: 'Диастолическое (ДАД)', unit: 'мм рт. ст.', value: 82, min: 30, max: 200 }
+      ],
+      run: function (v) {
+        var s = v.sys, d = v.dia;
+        if (d >= s) return { error: 'Диастолическое давление должно быть ниже систолического.' };
+        var map = d + (s - d) / 3, pp = s - d, label, tone;
+        if (s < 90 || d < 60) { label = 'Пониженное давление'; tone = 'info'; }
+        else {
+          var cs = s < 120 ? 0 : s < 130 ? 1 : s < 140 ? 2 : s < 160 ? 3 : s < 180 ? 4 : 5;
+          var cd = d < 80 ? 0 : d < 85 ? 1 : d < 90 ? 2 : d < 100 ? 3 : d < 110 ? 4 : 5;
+          var lv = Math.max(cs, cd);
+          var names = ['Оптимальное', 'Нормальное', 'Высокое нормальное', 'Гипертензия 1 степени', 'Гипертензия 2 степени', 'Гипертензия 3 степени'];
+          var tones = ['ok', 'ok', 'warn', 'warn', 'bad', 'bad'];
+          label = names[lv]; tone = tones[lv];
+          if (s >= 140 && d < 90) label += ' (изолированная систолическая)';
+        }
+        return {
+          caption: 'Среднее артериальное давление', big: nf(map, 0), unit: 'мм рт. ст.', status: label, tone: tone,
+          rows: [['Давление', s + '/' + d + ' мм рт. ст.'], ['Пульсовое давление', nf(pp, 0) + ' мм рт. ст.']],
+          note: 'Диагноз «артериальная гипертензия» ставят по нескольким измерениям в разные дни.'
+        };
+      }
+    },
+    {
+      id: 'qtc', tab: 'QTc', title: 'Корригированный интервал QT',
+      lead: 'Поправка QT на частоту сердечных сокращений по ЭКГ.',
+      formula: 'RR (с) = 60 / ЧСС. Bazett: QT / √RR. Fridericia: QT / ∛RR. Framingham: QT + 154 × (1 − RR). Удлинение: QTc больше 450 мс у мужчин и 460 мс у женщин; от 500 мс риск аритмии высокий.',
+      fields: [
+        { id: 'sex', label: 'Пол', type: 'select', value: 'm', options: SEX },
+        { id: 'qt', label: 'QT', unit: 'мс', value: 410, min: 200, max: 800 },
+        { id: 'hr', label: 'ЧСС', unit: 'уд/мин', value: 70, min: 30, max: 220 }
+      ],
+      run: function (v) {
+        var rr = 60 / v.hr;
+        var b = v.qt / Math.sqrt(rr), f = v.qt / Math.cbrt(rr), fr = v.qt + 154 * (1 - rr);
+        var thr = v.sex === 'm' ? 450 : 460, st, tone;
+        if (b < 340) { st = 'Укорочен'; tone = 'info'; }
+        else if (b <= thr) { st = 'Норма'; tone = 'ok'; }
+        else if (b < 500) { st = 'Удлинён'; tone = 'warn'; }
+        else { st = 'Удлинён, высокий риск аритмии'; tone = 'bad'; }
+        return {
+          caption: 'QTc по Bazett', big: nf(b, 0), unit: 'мс', status: st, tone: tone,
+          scale: { min: 300, max: 560, value: b,
+            bands: [{ to: 340, t: 'info' }, { to: thr, t: 'ok' }, { to: 500, t: 'warn' }, { to: 560, t: 'bad' }],
+            ticks: [340, thr, 500] },
+          rows: [['Fridericia', nf(f, 0) + ' мс'], ['Framingham', nf(fr, 0) + ' мс'], ['Интервал RR', nf(rr * 1000, 0) + ' мс']],
+          note: 'При ЧСС выше 90 или ниже 50 формула Bazett искажает результат, ориентируйтесь на Fridericia.'
+        };
+      }
+    },
+    {
+      id: 'dose', tab: 'Доза', title: 'Доза по массе тела',
+      lead: 'Разовая и суточная доза, объём жидкой формы.',
+      formula: 'Разовая доза = доза (мг/кг) × масса (кг). Если дозировка задана на сутки, разовая доза = суточная / число приёмов. Объём = доза (мг) / концентрация (мг/мл). Дозу и ограничения всегда берите из инструкции к препарату или назначения врача.',
+      fields: [
+        { id: 'w', label: 'Масса тела', unit: 'кг', value: 20, min: 0.3, max: 250, dec: 1 },
+        { id: 'dpk', label: 'Дозировка', unit: 'мг/кг', value: 15, min: 0.01, max: 1000, dec: 2 },
+        { id: 'mode', label: 'Дозировка указана', type: 'select', value: 'dose', options: [['dose', 'на один приём'], ['day', 'на сутки']] },
+        { id: 'n', label: 'Приёмов в сутки', unit: 'раз', value: 3, min: 1, max: 12 },
+        { id: 'conc', label: 'Концентрация (по желанию)', unit: 'мг/мл', value: 24, min: 0.01, max: 1000, dec: 2, optional: true },
+        { id: 'max', label: 'Макс. разовая доза (по желанию)', unit: 'мг', value: '', min: 0.01, max: 100000, dec: 2, optional: true }
+      ],
+      run: function (v) {
+        var single = v.mode === 'day' ? v.dpk * v.w / v.n : v.dpk * v.w, capped = false;
+        if (v.max != null && single > v.max) { single = v.max; capped = true; }
+        var daily = single * v.n;
+        var rows = [['Суточная доза', mg(daily) + ' мг']];
+        if (v.conc != null) {
+          rows.push(['Объём на приём', nf(single / v.conc, 1) + ' мл']);
+          rows.push(['Объём в сутки', nf(daily / v.conc, 1) + ' мл']);
+        }
+        return {
+          caption: 'Разовая доза', big: mg(single), unit: 'мг', status: capped ? 'Ограничена максимальной разовой дозой' : 'Расчёт по массе тела', tone: capped ? 'warn' : 'info',
+          rows: rows,
+          note: 'Не превышайте максимальную суточную дозу из инструкции. Для детей и пожилых нужна проверка врачом или фармацевтом.'
+        };
+      }
+    }
+  ];
+
+  var byId = {}, state = {};
+  calcs.forEach(function (c) {
+    byId[c.id] = c; state[c.id] = {};
+    c.fields.forEach(function (f) { state[c.id][f.id] = String(f.value == null ? '' : f.value); });
+  });
+
+  var current = 'bmi';
+  try { var h = (location.hash || '').slice(1); if (byId[h]) current = h; } catch (e) {}
+
+  function renderTabs() {
+    $('#tabs').innerHTML = calcs.map(function (c) {
+      return '<button class="tab" role="tab" type="button" data-id="' + c.id + '" aria-selected="' + (c.id === current) + '">' + c.tab + '</button>';
+    }).join('');
+  }
+
+  function fieldHtml(f, val) {
+    var id = 'f-' + f.id, ctl;
+    if (f.type === 'select') {
+      ctl = '<div class="control"><select id="' + id + '">' + f.options.map(function (o) {
+        return '<option value="' + o[0] + '"' + (o[0] === val ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select></div>';
+    } else {
+      ctl = '<div class="control"><input id="' + id + '" type="number" inputmode="decimal" step="any" value="' + val + '">' +
+        (f.unit ? '<span class="u">' + f.unit + '</span>' : '') + '</div>';
+    }
+    return '<div class="field"' + (f.wide ? ' style="grid-column:1/-1"' : '') + '><label for="' + id + '">' + f.label + '</label>' + ctl + '</div>';
+  }
+
+  function renderForm() {
+    var c = byId[current];
+    $('#title').textContent = c.title;
+    $('#lead').textContent = c.lead;
+    $('#formulaText').textContent = c.formula;
+    $('#form').innerHTML = c.fields.map(function (f) { return fieldHtml(f, state[c.id][f.id]); }).join('');
+  }
+
+  function collect(c) {
+    var out = {};
+    for (var i = 0; i < c.fields.length; i++) {
+      var f = c.fields[i], raw = state[c.id][f.id];
+      if (f.type === 'select') { out[f.id] = raw; continue; }
+      var t = String(raw).trim().replace(',', '.');
+      if (t === '') {
+        if (f.optional) { out[f.id] = null; continue; }
+        return { error: 'Заполните поле «' + f.label + '».' };
+      }
+      var n = Number(t);
+      if (!isFinite(n)) return { error: 'Поле «' + f.label + '»: введите число.' };
+      if (f.min != null && (n < f.min || n > f.max)) {
+        return { error: f.label + ': допустимо от ' + nf(f.min, f.dec || 0) + ' до ' + nf(f.max, f.dec || 0) + (f.unit ? ' ' + f.unit : '') + '.' };
+      }
+      out[f.id] = n;
+    }
+    return out;
+  }
+
+  function scaleHtml(s) {
+    var span = s.max - s.min, from = s.min, segs = '';
+    s.bands.forEach(function (b) {
+      segs += '<div class="seg ' + b.t + '" style="flex:' + ((b.to - from) / span) + ' 1 0"></div>';
+      from = b.to;
+    });
+    var pos = function (x) { return Math.max(0, Math.min(1, (x - s.min) / span)) * 100; };
+    var ticks = s.ticks.map(function (t) {
+      return '<span class="tick" style="left:' + pos(t) + '%">' + nf(t, t % 1 ? 1 : 0) + '</span>';
+    }).join('');
+    return '<div class="scale"><div class="bar">' + segs + '</div><span class="mark" style="left:' + pos(s.value) + '%"></span>' + ticks + '</div>';
+  }
+
+  function renderResult() {
+    var c = byId[current], vals = collect(c), r = vals.error ? vals : c.run(vals), el = $('#result');
+    if (r.error) { el.innerHTML = '<div class="result"><p class="err">' + r.error + '</p></div>'; return; }
+    var html = '<div class="result tone-' + r.tone + '">' +
+      '<div class="caption">' + r.caption + '</div>' +
+      '<div class="bigrow"><span class="big">' + r.big + '</span><span class="bigunit">' + r.unit + '</span></div>' +
+      '<span class="pill">' + r.status + '</span>' +
+      (r.scale ? scaleHtml(r.scale) : '') +
+      '<dl class="rows">' + r.rows.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>'; }).join('') + '</dl>' +
+      (r.note ? '<p class="note">' + r.note + '</p>' : '') + '</div>';
+    el.innerHTML = html;
+  }
+
+  $('#tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab');
+    if (!b || b.dataset.id === current) return;
+    current = b.dataset.id;
+    try { history.replaceState(null, '', '#' + current); } catch (err) {}
+    renderTabs(); renderForm(); renderResult();
+  });
+
+  $('#form').addEventListener('input', function (e) {
+    var id = e.target.id.slice(2);
+    if (current === 'gfr' && id === 'unit') {
+      var prev = state.gfr.unit, cur = e.target.value, cv = parseFloat(state.gfr.creat);
+      if (isFinite(cv) && prev !== cur) {
+        var nv = cur === 'mg' ? cv / 88.4 : cv * 88.4;
+        state.gfr.creat = String(+nv.toFixed(cur === 'mg' ? 2 : 0));
+        $('#f-creat').value = state.gfr.creat;
+      }
+    }
+    state[current][id] = e.target.value;
+    renderResult();
+  });
+
+  renderTabs(); renderForm(); renderResult();
+})();
+</script>
+
+</body>
+</html>
